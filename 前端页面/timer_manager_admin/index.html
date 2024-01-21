@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>TimerManager</title>
+		<link rel="stylesheet" href="./bootstrap-5.0.2-dist/css/bootstrap.min.css" />
+	</head>
+	<body>
+
+		<div class="container mt-5">
+			<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#myModal">
+				添加
+			</button>
+			<button type="button" class="btn btn-danger float-end exitSystem">
+				退出系统
+			</button>
+			<!-- 模态框 -->
+			<div class="modal .modal-dialog-centered fade" id="myModal">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<!-- 模态框头部 -->
+						<div class="modal-header">
+							<h4 class="modal-title">添加日程</h4>
+							<button type="button" class="btn-close modal_close" data-bs-dismiss="modal"></button>
+						</div>
+						<!-- 模态框内容 -->
+						<div class="modal-body">
+							<form>
+								<div class="mb-3 mt-3">
+									<input type="text" class="form-control" id="schedule_name" placeholder="请输入日程名"
+										name="name" value="">
+								</div>
+								<div class="mb-3">
+									<input type="text" class="form-control" id="schedule_time" placeholder="请输入日程时间"
+										name="time" value="">
+								</div>
+								<div class="mb-3">
+									<textarea class="form-control remark" rows="5" name="remarks"
+										placeholder="请输入日程内容"></textarea>
+								</div>
+								<button type="button" class="btn btn-primary d-block mx-auto add"
+									data-bs-dismiss="modal">添加日程</button>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="position-fixed bottom-0 end-0 p-3">
+				<div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+					<div class="toast-body">
+					</div>
+				</div>
+			</div>
+			<table class="table table-hover table-bordered">
+				<thead>
+					<tr class="text-center">
+						<th>日程名称</th>
+						<th>日程时间</th>
+						<th>日程描述</th>
+						<th>Options</th>
+					</tr>
+				</thead>
+				<tbody class="tb">
+
+				</tbody>
+			</table>
+		</div>
+		<script src="./bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
+		<script>
+			function prompt(message) {
+				const toastNode = document.querySelector("#toast")
+				toastNode.querySelector(".toast-body").innerHTML = message
+				let toast = new bootstrap.Toast(toastNode);
+				toast.show();
+				setTimeout(() => {
+					toast.hide()
+				}, 2000)
+			}
+			if (localStorage.getItem("useInfo")) {
+				const exitSystem = document.querySelector(".exitSystem")
+				exitSystem.addEventListener("click", (e) => {
+					localStorage.removeItem("useInfo")
+					location.href = "login.html"
+				})
+
+
+				function deleteSchedule(e) {
+					const id = e.target.parentNode.dataset.id
+					fetch(`http://localhost:8080/schedule/deleteSchedule?id=${id}`, {
+							method: "GET", // or 'PUT'
+						})
+						.then((response) => response.json())
+						.then(data => {
+							if (data.code === 200) {
+								renderingList()
+								prompt("删除成功")
+							}
+						})
+						.catch((error) => {
+							console.error("Error:", error);
+						});
+				}
+
+				function renderingList() {
+					fetch("http://localhost:8080/schedule/scheduleList", {
+							method: "GET", // or 'PUT'
+						})
+						.then((response) => response.json())
+						.then(data => {
+							if (data.code === 200) {
+								const tb = document.querySelector(".tb")
+								const tbNode = document.createElement('tbody')
+								data.data.forEach((item) => {
+									let trNode = document.createElement('tr')
+									trNode.innerHTML =
+										`
+									<td>${item.scheduleName}</td>
+									<td>${item.scheduleTime}</td>
+									<td>${item.remarks}</td>
+									<td class="text-center" data-id=${item.id}>
+										<button type="button" class="btn btn-danger btn-sm" onclick="deleteSchedule(event)">删除</button>
+										<button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#myModal" onclick="updateSchedule(event)">修改</button>
+									</td>
+									`
+									tbNode.appendChild(trNode)
+								})
+								tb.innerHTML = tbNode.innerHTML
+							}
+						})
+						.catch((error) => {
+							console.error("Error:", error);
+						});
+
+				}
+				renderingList()
+
+				function getScheduleInformation() {
+					const schedule_name = document.querySelector("#schedule_name")
+					const schedule_time = document.querySelector("#schedule_time")
+					const remark = document.querySelector(".remark")
+					const modal = document.querySelector(".modal")
+					const data = {
+						scheduleName: schedule_name.value,
+						scheduleTime: schedule_time.value,
+						remarks: remark.value,
+						userId: JSON.parse(localStorage.getItem("useInfo")).id
+					}
+					return data
+				}
+
+				function addSchedule(e) {
+					e.preventDefault()
+					fetch("http://localhost:8080/user/addSchedule", {
+							method: "POST", // or 'PUT'
+							headers: {
+								"Content-Type": "application/json",
+							},
+							body: JSON.stringify(getScheduleInformation()),
+						})
+						.then((response) => response.json())
+						.then(data => {
+							if (data.code === 200) {
+								renderingList()
+								prompt("添加成功")
+							}
+						})
+						.catch((error) => {
+							console.error("Error:", error);
+						});
+				}
+				const btn = document.querySelector(".add")
+				btn.addEventListener("click", addSchedule)
+				const modal_close = document.querySelector(".modal_close")
+				modal_close.addEventListener("click", (e) => {
+					btn.innerHTML = "添加日程"
+				})
+
+
+				function updateSchedule(event) {
+					btn.removeEventListener("click", addSchedule)
+
+					btn.classList.add("updaet")
+					btn.classList.remove("add")
+					btn.innerHTML = "修改"
+					const schedule_name = document.querySelector("#schedule_name")
+					const schedule_time = document.querySelector("#schedule_time")
+					const remark = document.querySelector(".remark")
+					const id = event.target.parentNode.dataset.id
+					fetch(`http://localhost:8080/schedule/queryById?id=${id}`, {
+							method: "GET", // or 'PUT'
+						})
+						.then((response) => response.json())
+						.then(data => {
+							if (data.code === 200) {
+								schedule_name.value = data.data.scheduleName
+								schedule_time.value = data.data.scheduleTime
+								remark.value = data.data.remarks
+							}
+						})
+						.catch((error) => {
+							console.error("Error:", error);
+						});
+
+					function update(e) {
+						e.preventDefault()
+						fetch("http://localhost:8080/schedule/updateSchedule", {
+								method: "POST", // or 'PUT'
+								headers: {
+									"Content-Type": "application/json",
+								},
+								body: JSON.stringify({
+									id,
+									...getScheduleInformation()
+								}),
+							})
+							.then((response) => response.json())
+							.then(data => {
+								if (data.code === 200) {
+									renderingList()
+									prompt("修改成功")
+								}
+							})
+							.catch((error) => {
+								console.error("Error:", error);
+							});
+						btn.addEventListener("click", addSchedule)
+						btn.innerHTML = "添加日程"
+						schedule_name.value = ""
+						schedule_time.value = ""
+						remark.value = ""
+					}
+					btn.addEventListener("click", update)
+				}
+			}
+			window.addEventListener("load", (e) => {
+				if (!localStorage.getItem("useInfo")) {
+					prompt("请登录")
+					setTimeout(()=>{
+						location.href = "login.html"
+					},2000)
+				}
+			})
+		</script>
+	</body>
+</html>

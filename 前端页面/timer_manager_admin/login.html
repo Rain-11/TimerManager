@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>登录页</title>
+		<link rel="stylesheet" href="./css/login.css" />
+		<link rel="stylesheet" href="./bootstrap-5.0.2-dist/css/bootstrap.min.css" />
+	</head>
+	<body>
+		<div class="login_container position-relative">
+			<div class="position-absolute w-25 d-flex flex-column justify-content-center"
+				style="left: 50%; top: 50%; transform: translate(-50%,-50%);">
+				<h3 class="text-center">TimerManager</h3>
+				<form class="needs-validation" novalidate>
+					<div class="mb-3 mt-3 w-75 mx-auto">
+						<label for="email" class="form-label"></label>
+						<input type="email" class="form-control" id="email" placeholder="Enter email" name="email"
+							required>
+						<div class="valid-feedback toast">验证成功！</div>
+						<div class="invalid-feedback">请输入邮箱！</div>
+					</div>
+					<div class="mb-3 w-75  mx-auto">
+						<label for="pwd" class="form-label"></label>
+						<input type="password" class="form-control" id="pwd" placeholder="Enter password" name="pswd"
+							required>
+						<div class="valid-feedback">验证成功！</div>
+						<div class="invalid-feedback">请输入密码！</div>
+					</div>
+					<div class="form-check mb-3" style="padding-left: 5.3rem">
+						<label class="form-check-label">
+							<input class="form-check-input" type="checkbox" name="remember" required> Lorem, ipsum
+							dolor.
+						</label>
+						<div class="valid-feedback">验证成功！</div>
+						<div class="invalid-feedback">请同意协议！</div>
+					</div>
+					<button type="submit" class="btn btn-primary mx-auto d-block">Submit</button>
+				</form>
+			</div>
+		</div>
+		<script src="./bootstrap-5.0.2-dist/js/bootstrap.bundle.min.js"></script>
+		<script src="https://cdn.bootcdn.net/ajax/libs/axios/1.5.0/axios.js"></script>
+		<script>
+			const form = document.querySelector('.needs-validation')
+			form.addEventListener('submit', event => {
+				event.preventDefault()
+				if (!form.checkValidity()) {
+					event.stopPropagation()
+				}
+				form.classList.add('was-validated')
+				const email = document.querySelector('#email')
+				const password = document.querySelector('#pwd')
+				const xhr = new XMLHttpRequest()
+				xhr.open('post', "http://localhost:8080/user/login")
+				xhr.setRequestHeader('content-type', 'application/json')
+				const data = {
+					email: email.value,
+					password: password.value
+				}
+				xhr.onreadystatechange = () => {
+					if (xhr.readyState === 4) {
+						const data = JSON.parse(xhr.response)
+						console.log(data);
+						if (data.code == 200) {
+							location.href = 'index.html'
+							localStorage.setItem("useInfo", JSON.stringify(data.data))
+						}
+					}
+				}
+				xhr.send(JSON.stringify(data))
+			})
+		</script>
+	</body>
+</html>
